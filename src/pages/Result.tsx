@@ -266,14 +266,11 @@ export default function Result() {
                     state={{ unknown: unknownAll }}
                     className="inline-flex items-center rounded-xl border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-medium hover:bg-brand-50 dark:hover:bg-brand-900/40"
                   >🖨️ 打开默写页</Link>
-                  <button
-                    onClick={() => { nav('/'); window.scrollTo({ top: 0 }) }}
-                    className="inline-flex items-center rounded-xl border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-4 py-2.5 text-sm font-medium hover:bg-brand-50 dark:hover:bg-brand-900/40"
-                  >🏠 回到首页</button>
                   <Link
-                    to={`/quiz?mode=${result.mode}`}
+                    to="/"
+                    onClick={() => { window.scrollTo({ top: 0 }) }}
                     className="inline-flex items-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-600 shadow-card"
-                  >🔁 再测一次（{result.mode === 'fast' ? '快速' : '精准'}）</Link>
+                  >🔁 再测一次</Link>
                 </div>
               </div>
             </section>
