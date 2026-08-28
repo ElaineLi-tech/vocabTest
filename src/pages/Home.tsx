@@ -60,9 +60,7 @@ export default function Home() {
           </div>
 
           <ul className="mt-5 space-y-3 text-sm leading-6 text-[rgb(var(--fg))]/90">
-            <li className="flex gap-2"><span className="text-brand-600">①</span> 看到单词后，判断自己是否「认识」</li>
-            <li className="flex gap-2"><span className="text-brand-600">②</span> 不确定请选「不认识」，避免虚高</li>
-            <li className="flex gap-2"><span className="text-brand-600">③</span> 认识的单词会出现 4 选 1 释义题，需要答对才算掌握</li>
+            <li className="flex gap-2"><span className="text-brand-600">①</span> 认识的单词会出现 4 选 1 释义题，需要答对才算掌握</li>
           </ul>
 
           <Link
