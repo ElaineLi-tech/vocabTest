@@ -1,0 +1,59 @@
+# ---- Deps ----
+node_modules
+.pnp
+.pnp.js
+.yarn/install-state.gz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json.bak
+
+# ---- Build artifacts ----
+dist
+dist-ssr
+build
+out
+.vite
+*.local
+*.tsbuildinfo
+tsconfig.node.tsbuildinfo
+tsconfig.tsbuildinfo
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# ---- Test output ----
+coverage
+.nyc_output
+junit.xml
+*.lcov
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*.log
+
+# ---- Env / secrets ----
+.env
+.env.*
+!.env.example
+*.env.local
+
+# ---- TRAE workspace / internal ----
+.trae/
+.memory/
+
+# ---- 原始上游词库（体积大，已处理为 src/data/levels/L*.json）----
+# english-vocabulary 目录是 https://github.com/KyleBing/english-vocabulary 的原始克隆（几十MB JSONL/TSV/SQL），
+# 仅在预处理阶段（scripts/build-word-data.js）使用，正式运行、发布和复现项目时，
+# 直接使用已生成的 src/data/levels/*.json（64,432 词 10 档）即可。
+# 如果你的团队需要重跑预处理，再手动 git clone https://github.com/KyleBing/english-vocabulary 到此目录
+english-vocabulary/
+
+# ---- 临时脚本（性能 profile）----
+scripts/_*.cjs
+scripts/_*.mjs

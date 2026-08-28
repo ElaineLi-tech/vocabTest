@@ -1,0 +1,62 @@
+[
+  {
+    "level": 1,
+    "name": "小学入门",
+    "total": 819,
+    "file": "L1.json"
+  },
+  {
+    "level": 2,
+    "name": "初中基础",
+    "total": 3119,
+    "file": "L2.json"
+  },
+  {
+    "level": 3,
+    "name": "高中基础",
+    "total": 6555,
+    "file": "L3.json"
+  },
+  {
+    "level": 4,
+    "name": "CET-4 四级",
+    "total": 4544,
+    "file": "L4.json"
+  },
+  {
+    "level": 5,
+    "name": "CET-6 六级",
+    "total": 3991,
+    "file": "L5.json"
+  },
+  {
+    "level": 6,
+    "name": "考研 / 专四",
+    "total": 7030,
+    "file": "L6.json"
+  },
+  {
+    "level": 7,
+    "name": "雅思 / GMAT / 商务",
+    "total": 8019,
+    "file": "L7.json"
+  },
+  {
+    "level": 8,
+    "name": "托福 / 专八",
+    "total": 15907,
+    "file": "L8.json"
+  },
+  {
+    "level": 9,
+    "name": "SAT",
+    "total": 4464,
+    "file": "L9.json"
+  },
+  {
+    "level": 10,
+    "name": "GRE",
+    "total": 9984,
+    "file": "L10.json"
+  }
+]

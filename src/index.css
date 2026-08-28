@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 255 255 255;
+  --fg: 15 23 42;
+  --muted: 100 116 139;
+  --card: 248 250 252;
+  --line: 226 232 240;
+  --accent: 6 182 212;
+  --ok: 16 185 129;
+  --warn: 245 158 11;
+  --err: 239 68 68;
+}
+
+.dark {
+  --bg: 8 15 24;
+  --fg: 241 245 249;
+  --muted: 148 163 184;
+  --card: 15 23 36;
+  --line: 30 41 59;
+  --accent: 34 211 238;
+  --ok: 52 211 153;
+  --warn: 250 204 21;
+  --err: 248 113 113;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family: Inter, system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* A thin horizontal rule style (文字在水平线之上) */
+.rule {
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+.rule::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: rgb(var(--line));
+}
+
+/* Dictation print */
+@media print {
+  body { background: white; color: black; }
+  .no-print { display: none !important; }
+  .dictation-page { padding: 0; }
+}
+
+/* Hide scrollbars on tab row but allow scroll */
+.scroll-x { overflow-x: auto; scrollbar-width: thin; }
+
+/* Number / metric text never wraps */
+.numeric { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* Recharts tooltip 深色模式适配 */
+.recharts-tooltip-wrapper { outline: none; }
