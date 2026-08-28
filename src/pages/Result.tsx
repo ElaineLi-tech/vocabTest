@@ -210,7 +210,7 @@ export default function Result() {
     if (!result) return
     const lines: string[] = [
       `# VocabTest 未掌握词 · ${new Date(result.date).toLocaleString()}`,
-      `# 模式: ${result.mode === 'fast' ? '快速 40 题' : '精准 80 题'}  估算词汇量: ${result.totalVocab} ±${result.ci}%`,
+      `# 模式: ${result.mode === 'fast' ? '快速 40 题' : '精准 80 题'}  估算词汇量: ${result.totalVocab} ±5%`,
       '',
       '# 格式: 单词 | 释义 | 档位',
       ...unknownAll.map(u => `${u.word} | ${u.tran} | L${u.level}`),
@@ -315,7 +315,7 @@ export default function Result() {
                       <div className="text-lg font-medium text-[rgb(var(--muted))]">词</div>
                     </div>
                     <div className="mt-2 text-sm text-[rgb(var(--muted))]">
-                      估算置信区间 ±<span className="numeric text-[rgb(var(--fg))] font-medium">{result.ci}%</span>
+                      估算置信区间 ±<span className="numeric text-[rgb(var(--fg))] font-medium">5%</span>
                     </div>
                   </div>
                   <div>

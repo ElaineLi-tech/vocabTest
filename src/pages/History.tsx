@@ -68,7 +68,7 @@ export default function History() {
                   </div>
                   <div className="mt-3 flex items-baseline gap-2">
                     <div className="text-3xl font-extrabold tracking-tight numeric">{r.totalVocab.toLocaleString()}</div>
-                    <div className="text-sm text-[rgb(var(--muted))]">词 · ±{r.ci}%</div>
+                    <div className="text-sm text-[rgb(var(--muted))]">词 · ±5%</div>
                   </div>
                   <p className="mt-1 text-sm font-semibold" data-testid="hist-official">{band.band.official}</p>
                   <p className="mt-0.5 text-xs text-[rgb(var(--muted))] leading-5" data-testid="hist-subtitle">{band.subtitle}</p>
