@@ -125,35 +125,47 @@ export const ALLOWED_CODE_HASHES: string[] = [
 /** 超级管理员万能码的 SHA-256 哈希（永久有效，不受 VALID_DAYS 限制）。请把明文单独保存（交付清单），不要把明文写进代码。 */
 export const MASTER_CODE_HASH: string = "570eb2601a3baae63cf46001165d312b10fe9685d89da86e974a1b91804258c2";
 
-/** 字符集：VT- 前缀 + 4 组 4 字符，共 32 个（去掉 0/O/1/I 手写歧义） */
-const NORM_CHAR = 'A-Z2-9';
-const RE_CODE_FULL = new RegExp(`^VT-[${NORM_CHAR}]{4}-[${NORM_CHAR}]{4}-[${NORM_CHAR}]{4}-[${NORM_CHAR}]{4}$`);
-const RE_CODE_NOHD = new RegExp(`^[${NORM_CHAR}]{4}(-[${NORM_CHAR}]{4}){3}$`);
+/**
+ * 字符集：用户输入时合法可被接受的字符（= 生成时字符集的超集，便于做视觉近似字符容错）
+ *
+ *  - A-Z0-9 全部允许（用户手写出错常见：0↔O、1↔I）
+ *  - 实际生成时只用 32 字符集 "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"（去掉 0/O/1/I 手写歧义）
+ *  - normalize 阶段会主动把 0→O、1→I 做视觉歧义修正，避免用户写错一个数字就全错
+ */
+const IN_CHAR = 'A-Z0-9';
+const RE_CODE_FULL = new RegExp(`^VT-[${IN_CHAR}]{4}-[${IN_CHAR}]{4}-[${IN_CHAR}]{4}-[${IN_CHAR}]{4}$`);
 
 /**
- * 规范化授权码：
- *  - 全部转大写、去空格
- *  - 把 _ . / \ ／ — – － 、 ， 等常见分隔符全部转 -
- *  - 缺 VT- 前缀自动补
+ * 规范化授权码（最终统一返回 VT-XXXX-XXXX-XXXX-XXXX 格式；不足 16 位按部分填充分组，便于 UI 实时格式化）：
+ *  1. trim + 大写 + 去除所有非 [A-Z0-9] 字符（包括空格、- _ . / \ 全角分隔符等）
+ *  2. 视觉近似字符修正：0 → O，1 → I（我们生成的码不含 0/1，无歧义，用户手写时不会因形近而写错）
+ *  3. 如果前 2 位是 "VT"，去掉前缀拿 body；否则整串当 body
+ *  4. body 超出 16 位截断到 16（我们的标准长度 = 4 段 × 4）
+ *  5. 按 4 位一组自动加分隔符 + 补回 VT- 前缀
  */
 export function normalizeCode(raw: string): string {
   if (!raw) return '';
   let s = String(raw).trim().toUpperCase();
-  s = s.replace(/\s+/g, '').replace(/[_./\\／—–－、，.]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
-  if (RE_CODE_FULL.test(s)) return s;
-  if (RE_CODE_NOHD.test(s)) return 'VT-' + s;
-  return s;
+  s = s.replace(/[^A-Z0-9]+/g, '');
+  if (!s) return '';
+  s = s.replace(/0/g, 'O').replace(/1/g, 'I');
+  let body = s.startsWith('VT') ? s.slice(2) : s;
+  if (body.length > 16) body = body.slice(0, 16);
+  if (body.length === 0) return '';
+  const groups: string[] = [];
+  for (let i = 0; i < body.length; i += 4) groups.push(body.slice(i, i + 4));
+  return 'VT-' + groups.join('-');
 }
 
-/** 判断格式是否合法（用于 UI 输入时快速报错，减少不必要的 WebCrypto 计算） */
+/** 判断格式是否合法（严格 5 段 VT-4-4-4-4） */
 export function looksLikeValidCode(normalized: string): boolean {
   return RE_CODE_FULL.test(normalized);
 }
 
-/** 浏览器端 SHA-256 → 64 hex（与 Node `crypto.createHash('sha256').update(salt + text).digest('hex')` 完全一致） */
+/** 与 Node `crypto.createHash('sha256').update(text).digest('hex')` 完全一致（当初生成常量时使用无盐 sha256，统一对 normalize 后的标准明文哈希） */
 export async function sha256Hex(text: string): Promise<string> {
   const enc = new TextEncoder();
-  const buf = enc.encode(HASH_SALT + text.normalize('NFKC'));
+  const buf = enc.encode(text.normalize('NFKC'));
   const out = await crypto.subtle.digest('SHA-256', buf);
   const bytes = new Uint8Array(out);
   let hex = '';

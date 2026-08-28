@@ -32,17 +32,12 @@ export default function AccessGate(props: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  /** 把用户任意输入（包括粘贴整串 VT-XXX...）自动格式化为 4-4-4-4，带 VT- 头 */
+  /**
+   * 自动格式化：任何用户输入（粘贴 / 逐字符敲 / 用 _ 或 . 分隔 / 忘写 VT- 前缀 / 输错 0 变 O 等）
+   * 全部交给 normalizeCode → 返回 VT-XXXX-XXXX-XXXX-XXXX 格式（未满 16 位按部分填充，满 16 位格式合法）。
+   */
   const onInputChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-    const v = e.target.value
-    if (!v) { setInput(''); return }
-    const norm = normalizeCode(v) // 去分隔符、大写、补 VT-
-    if (!norm) { setInput(v); return }
-    // 去掉 "VT-" 后按 4 位一组
-    const body = norm.replace(/^VT-/, '')
-    const groups = body.match(/.{1,4}/g) ?? []
-    const pretty = 'VT-' + groups.join('-')
-    setInput(pretty)
+    setInput(normalizeCode(e.target.value));
   }
 
   const tryVerify = useCallback(async (raw: string) => {
