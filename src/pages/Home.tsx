@@ -1,9 +1,37 @@
 import PageShell from '@/components/PageShell'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
+import { BookOpenCheck, BrainCircuit, BarChart3, GraduationCap, type LucideIcon } from 'lucide-react'
 
 export default function Home() {
   const [mode, setMode] = useState<'fast' | 'precise'>('fast')
+
+  const highlights: Array<{ icon: LucideIcon; title: string; desc: string; tone: string }> = [
+    {
+      icon: BookOpenCheck,
+      title: '词库权威',
+      desc: '源自 23 本主流教材与考试词书，去重 6.4 万 + 词条，覆盖小学 → GRE 全部难度',
+      tone: 'from-sky-500/10 to-sky-500/0 text-sky-600 dark:text-sky-300',
+    },
+    {
+      icon: BrainCircuit,
+      title: '自适应出题',
+      desc: '系统随你的水平自动升 / 降难度，不刁难也不放水',
+      tone: 'from-fuchsia-500/10 to-fuchsia-500/0 text-fuchsia-600 dark:text-fuchsia-300',
+    },
+    {
+      icon: BarChart3,
+      title: '统计估算',
+      desc: '10 档分层抽样 + 猜测去偏 + 置信区间，用科学样本算出你的真实词汇量',
+      tone: 'from-emerald-500/10 to-emerald-500/0 text-emerald-600 dark:text-emerald-300',
+    },
+    {
+      icon: GraduationCap,
+      title: '直接对标考试',
+      desc: '高考 / 四六级 / 专四专八 / 雅思托福百分位一键对照',
+      tone: 'from-amber-500/10 to-amber-500/0 text-amber-600 dark:text-amber-300',
+    },
+  ]
 
   return (
     <PageShell
@@ -51,12 +79,21 @@ export default function Home() {
 
         <div className="rounded-2xl border border-[rgb(var(--line))] bg-gradient-to-br from-brand-50 to-white dark:from-brand-900/30 dark:to-slate-900 p-6 shadow-card">
           <h2 className="text-lg font-semibold rule">测试亮点</h2>
-          <ul className="mt-5 space-y-3 text-sm leading-6">
-            <li>📊 <b>10 档分层抽样</b>：覆盖小学 → GRE，总量 64,000+ 去重词条</li>
-            <li>🎯 <b>双关卡判题</b>：先自判「认识/不认识」+ 4 选 1 释义校验，结果不虚高</li>
-            <li>🧭 <b>对照表对标课标</b>：高考线 / 四六级 / 专四专八 / 雅思托福百分位一目了然</li>
-            <li>📤 <b>PNG 分享卡 + 默写纸</b>：截图发朋友圈；未掌握单词一键导出 TXT 可打印默写</li>
-            <li>🔒 <b>100% 本地</b>：零后端，结果只存你自己的浏览器</li>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+            {highlights.map(({ icon: Icon, title, desc, tone }) => (
+              <li
+                key={title}
+                className="group flex items-start gap-3 rounded-xl border border-[rgb(var(--line))] bg-[rgb(var(--card))]/70 p-4 hover:border-brand-400/60 hover:shadow-sm transition"
+              >
+                <div className={`shrink-0 grid place-items-center w-10 h-10 rounded-xl bg-gradient-to-br ${tone} shadow-inner`}>
+                  <Icon className="w-5 h-5" strokeWidth={2} aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-[rgb(var(--fg))] leading-5">{title}</h3>
+                  <p className="mt-1 text-[13px] leading-5 text-[rgb(var(--muted))]">{desc}</p>
+                </div>
+              </li>
+            ))}
           </ul>
         </div>
       </section>
