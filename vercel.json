@@ -35,5 +35,11 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!assets/|data/|favicon\\.ico|robots\\.txt|[^/]*\\.[^/]{2,6}$).*)",
+      "destination": "/index.html"
+    }
   ]
 }

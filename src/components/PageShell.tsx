@@ -23,6 +23,11 @@ export default function PageShell({
           <div className="flex items-center gap-2">
             <Link
               to="/history"
+              className="inline-flex h-9 items-center rounded-lg border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-3 text-sm text-[rgb(var(--fg))] hover:bg-brand-50 dark:hover:bg-brand-900/40 sm:hidden"
+              aria-label="历史记录"
+            >📖</Link>
+            <Link
+              to="/history"
               className="hidden sm:inline-flex h-9 items-center rounded-lg border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-3 text-sm text-[rgb(var(--fg))] hover:bg-brand-50 dark:hover:bg-brand-900/40"
             >历史记录</Link>
             {action}
