@@ -144,12 +144,11 @@ export default function Result() {
               {/* 微信二维码占位 */}
               <aside data-testid="module-wechat" className="rounded-2xl border border-[rgb(var(--line))] bg-[rgb(var(--card))] p-6 shadow-card flex flex-col items-center text-center">
                 <h3 className="text-base font-semibold">领取专属学习包 🎁</h3>
-                <p className="mt-2 text-sm text-[rgb(var(--muted))] leading-6">扫码 / 复制下方微信号，发送「<b className="text-brand-700 dark:text-brand-200">词汇量 {result.totalVocab}</b>」，立即获取：</p>
+                <p className="mt-2 text-sm text-[rgb(var(--muted))] leading-6">添加下方微信号，发送<b className="text-brand-700 dark:text-brand-200"> 词汇量截图</b>，立即获取<b className="text-brand-700 dark:text-brand-200"> VIP 学习包</b>：</p>
                 <ul className="mt-3 space-y-1 text-sm leading-6 text-left">
-                  <li>📚 按你档位定制的 <b>100 核心词 + 500 高频扩展词</b> PDF</li>
-                  <li>🗓️ <b>21 天背词计划</b>（含遗忘曲线复盘）</li>
-                  <li>🖨️ 可打印默写纸（同本页「导出默写 TXT」格式）</li>
-                  <li>🎧 真人发音 MP3 + 英剧例句包</li>
+                  <li>📘 <b>剑桥原版单词学习教材</b></li>
+                  <li>📖 <b>语境记单词手册</b></li>
+                  <li>🗓️ <b>21 天背词计划</b></li>
                 </ul>
                 {/* 二维码占位图：使用占位框 + 可替换说明 */}
                 <div className="mt-5 w-[220px] h-[220px] rounded-xl border-2 border-dashed border-[rgb(var(--line))] grid place-items-center bg-[rgb(var(--bg))]/40 relative overflow-hidden" data-testid="wechat-qr-placeholder">
