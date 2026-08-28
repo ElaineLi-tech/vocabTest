@@ -150,12 +150,12 @@ export default function Result() {
                   <li>📖 <b>语境记单词手册</b></li>
                   <li>🗓️ <b>21 天背词计划</b></li>
                 </ul>
-                {/* 微信二维码（public/微信二维码.jpg 静态分发，构建时会进 dist） */}
-                <div className="mt-5 w-[220px] h-[220px] rounded-xl overflow-hidden bg-white shadow-card grid place-items-center p-2" data-testid="wechat-qr-placeholder">
+                {/* 微信二维码（竖长方形原图 1321×4360，1:3.3 —— 不固定正方形，按比例完整展示） */}
+                <div className="mt-5 w-[220px] h-auto" data-testid="wechat-qr-placeholder">
                   <img
                     src="/微信二维码.jpg"
                     alt="微信二维码 Alina0100302"
-                    className="w-full h-full object-contain select-none pointer-events-none"
+                    className="w-full h-auto object-contain rounded-2xl bg-white shadow-card select-none pointer-events-none"
                     loading="lazy"
                     draggable={false}
                   />
