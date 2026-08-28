@@ -8,7 +8,7 @@ import html2canvas from 'html2canvas'
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 const SESSION_KEY = 'vocab-result-json'
-const WECHAT_ID_PLACEHOLDER = 'VocabTest-Official'
+const WECHAT_ID_PLACEHOLDER = 'Alina0100302'
 
 export default function Result() {
   const nav = useNavigate()
@@ -150,11 +150,15 @@ export default function Result() {
                   <li>📖 <b>语境记单词手册</b></li>
                   <li>🗓️ <b>21 天背词计划</b></li>
                 </ul>
-                {/* 二维码占位图：使用占位框 + 可替换说明 */}
-                <div className="mt-5 w-[220px] h-[220px] rounded-xl border-2 border-dashed border-[rgb(var(--line))] grid place-items-center bg-[rgb(var(--bg))]/40 relative overflow-hidden" data-testid="wechat-qr-placeholder">
-                  <span className="text-center text-sm text-[rgb(var(--muted))] leading-6 px-4">
-                    微信二维码占位<br />替换为你的专属二维码 PNG<br />（220×220 透明）
-                  </span>
+                {/* 微信二维码（public/微信二维码.jpg 静态分发，构建时会进 dist） */}
+                <div className="mt-5 w-[220px] h-[220px] rounded-xl overflow-hidden bg-white shadow-card grid place-items-center p-2" data-testid="wechat-qr-placeholder">
+                  <img
+                    src="/微信二维码.jpg"
+                    alt="微信二维码 Alina0100302"
+                    className="w-full h-full object-contain select-none pointer-events-none"
+                    loading="lazy"
+                    draggable={false}
+                  />
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-sm">
                   <span className="text-[rgb(var(--muted))]">微信 ID：</span>
