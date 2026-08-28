@@ -221,3 +221,20 @@ if (typeof window !== 'undefined') {
     ;(globalThis as any).fetch = mockFetch
   }
 }
+
+// Vitest 下所有 render 都默认放行 Gate：预先把永久有效的管理员 grant 写进 localStorage，
+// 这样测试不需要手动登录。管理员 hash 取 src/utils/access.ts 里的常量 MASTER_CODE_HASH 文本。
+if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+  const MASTER_HASH = '570eb2601a3baae63cf46001165d312b10fe9685d89da86e974a1b91804258c2'
+  try {
+    window.localStorage.setItem(
+      'vt_access_granted_v1',
+      JSON.stringify({
+        codeHash: MASTER_HASH,
+        master: true,
+        grantedAt: Date.now(),
+        expiresAt: Number.POSITIVE_INFINITY,
+      }),
+    )
+  } catch { /* ignore */ }
+}

@@ -57,3 +57,6 @@ english-vocabulary/
 # ---- 临时脚本（性能 profile）----
 scripts/_*.cjs
 scripts/_*.mjs
+.vercel
+.env*
+VocabTest-授权码交付-仅你可见-勿公开.txt
