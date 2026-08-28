@@ -72,11 +72,14 @@ export default function AccessGate(props: { children: React.ReactNode }) {
 
   return (
     <PageShell title="授权验证" subtitle="VocabTest 为付费服务，请输入购买获得的 16 位授权码解锁全站功能">
-      <div className="py-10">
-        <div className="mx-auto max-w-5xl grid gap-6 lg:grid-cols-2 items-stretch">
+      <div className="py-8 sm:py-10">
+        <div className="mx-auto max-w-6xl grid gap-6 lg:grid-cols-2 items-stretch">
 
-          {/* 左侧：产品介绍 + 购买微信导流，不让陌生访客看到空白 Gate 就直接走 */}
-          <section className="rounded-2xl border border-[rgb(var(--line))] bg-gradient-to-br from-brand-50 to-white dark:from-brand-900/30 dark:to-slate-900 p-6 sm:p-8 shadow-card">
+          {/* 左侧：产品介绍 + 购买微信导流，不让陌生访客看到空白 Gate 就直接走
+              注意：微信二维码是"头像+Alina+底部文字"的竖长方形，必须 object-contain + h-auto 不能裁切
+              （之前 w-32 h-32 object-cover 会把 Alina 头像和底部"添加 Alina"文字切走）
+          */}
+          <section className="rounded-2xl border border-[rgb(var(--line))] bg-gradient-to-br from-brand-50 to-white dark:from-brand-900/30 dark:to-slate-900 p-5 sm:p-7 shadow-card">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-brand-500 grid place-items-center text-white font-bold shadow-inner">V</div>
               <div>
@@ -85,7 +88,7 @@ export default function AccessGate(props: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <ul className="mt-6 space-y-3 text-sm leading-7">
+            <ul className="mt-5 space-y-3 text-sm leading-7">
               <li className="flex gap-3 items-start">
                 <span className="mt-0.5 inline-flex w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-200 grid place-items-center text-sm">📚</span>
                 <div><b>词库权威：</b>源自 23 本主流教材与考试词书，去重 6.4 万 + 词条，覆盖小学 → GRE 全部难度</div>
@@ -104,26 +107,52 @@ export default function AccessGate(props: { children: React.ReactNode }) {
               </li>
             </ul>
 
-            <div className="mt-8 rounded-xl border border-[rgb(var(--line))] bg-white/70 dark:bg-slate-900/60 p-4 sm:p-5">
+            <div className="mt-7 rounded-xl border border-[rgb(var(--line))] bg-white/80 dark:bg-slate-900/70 p-4 sm:p-6">
               <div className="text-sm font-semibold text-brand-700 dark:text-brand-200">🛒 还没购买？</div>
-              <p className="mt-1 text-sm text-[rgb(var(--muted))] leading-6">添加微信号，发送「<b>购买词汇量测试</b>」，可单用户购买或团队批量授权。</p>
-              <div className="mt-4 flex flex-wrap items-center gap-4">
-                <div className="w-32 h-32 rounded-xl bg-white shadow-card overflow-hidden grid place-items-center">
-                  <img src={WECHAT_IMG} alt="购买微信二维码" className="w-full h-full object-cover select-none" loading="eager" draggable={false} />
+              <p className="mt-1 text-sm text-[rgb(var(--muted))] leading-6">
+                添加微信号，发送「<b>购买词汇量测试</b>」，可单用户购买或团队批量授权。
+              </p>
+
+              {/* 二维码 + 说明：sm 以上左图右文（sm:grid-cols-[auto,1fr]）；手机下上图下文（grid-cols-1），保证二维码竖长方形完整且说明不被挤
+                 - 二维码容器：最大宽 220（和 Result 页分享卡一致的安全尺寸，手机能完整塞下），h-auto + object-contain = 顶部 Alina 头像和底部"添加 Alina"提示文字全部展示不裁切
+                 - 说明文字 space-y-2 分开，不会"21 天背词计划"只露最后一个字
+              */}
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-[auto,1fr] gap-5 items-start">
+                <div className="w-full max-w-[220px] mx-auto sm:mx-0 rounded-xl bg-white p-3 shadow-card">
+                  <img
+                    src={WECHAT_IMG}
+                    alt="购买微信二维码"
+                    className="w-full h-auto object-contain select-none rounded-lg"
+                    loading="eager"
+                    draggable={false}
+                  />
                 </div>
-                <div className="text-sm leading-7">
-                  <div className="flex items-center gap-2"><span className="text-[rgb(var(--muted))]">微信 ID：</span><code className="rounded-md bg-[rgb(var(--bg))] px-2 py-0.5 text-[rgb(var(--fg))] select-all">Alina0100302</code></div>
-                  <div className="mt-1 text-[rgb(var(--muted))]">授权码有效期：{VALID_DAYS} 天（管理员永久）</div>
-                  <div className="mt-1 text-[rgb(var(--muted))]">VIP 学习包：剑桥原版教材 + 语境记单词手册 + 21 天背词计划</div>
+                <div className="text-sm leading-7 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[rgb(var(--muted))] shrink-0">微信 ID：</span>
+                    <code className="rounded-md bg-[rgb(var(--bg))] px-2 py-0.5 text-[rgb(var(--fg))] select-all font-semibold tracking-wide">
+                      Alina0100302
+                    </code>
+                  </div>
+                  <div className="text-[rgb(var(--muted))]">
+                    授权码有效期：<span className="text-[rgb(var(--fg))] font-medium">{VALID_DAYS} 天</span>
+                    （管理员永久）
+                  </div>
+                  <div className="text-[rgb(var(--muted))]">
+                    VIP 学习包：
+                    <span className="text-[rgb(var(--fg))] font-medium">剑桥原版教材 + 语境记单词手册 + 21 天背词计划</span>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
           {/* 右侧：输入授权码 */}
-          <section className="rounded-2xl border border-[rgb(var(--line))] bg-[rgb(var(--card))] p-6 sm:p-8 shadow-card flex flex-col justify-center">
+          <section className="rounded-2xl border border-[rgb(var(--line))] bg-[rgb(var(--card))] p-5 sm:p-7 md:p-8 shadow-card flex flex-col justify-center">
             <h1 className="text-2xl font-extrabold tracking-tight">🔐 输入授权码解锁</h1>
-            <p className="mt-1 text-sm text-[rgb(var(--muted))] leading-6">授权码格式 <code className="rounded bg-[rgb(var(--bg))] px-1.5 py-0.5 text-xs">VT-XXXX-XXXX-XXXX-XXXX</code>，输完一次后，同一浏览器有效期 {VALID_DAYS} 天。</p>
+            <p className="mt-1 text-sm text-[rgb(var(--muted))] leading-6">
+              授权码格式 <code className="rounded bg-[rgb(var(--bg))] px-1.5 py-0.5 text-xs">VT-XXXX-XXXX-XXXX-XXXX</code>，输完一次后，同一浏览器有效期 {VALID_DAYS} 天。
+            </p>
 
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
               <div>
