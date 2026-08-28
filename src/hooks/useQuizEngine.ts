@@ -41,9 +41,25 @@ const MODE_LIMIT: Record<'fast' | 'precise', number> = { fast: 40, precise: 80 }
 /** 用户选完选项后，高亮对/错并显示例句的停留时间（毫秒），之后自动跳下一题。 */
 const REVEAL_DURATION_MS = 650
 
-const MIN_BOOT_LEVELS: number[] = [4, 5]
-const IDLE_BOOT_LEVELS: number[] = [3, 6, 7, 8]
-const EXTREMES: number[] = [1, 2, 9, 10]
+/**
+ * 启动时立刻加载的档（首题出 L4，阻塞路径只拿这 1 档 ≈ 2MB uncompressed）。
+ * 其余档位在「升/降档算法算出 target 且内存未加载」时按需懒加载，
+ * 这样移动端弱网启动只并发 1 个 JSON，手机首屏时间从 6–10s 压到 1–2s。
+ * L5 作为邻档，在 L4 首题 loading=false 后以 idle 低优先级后台预热（桌面/强网都受益）。
+ */
+const BOOT_LEVEL = 4
+const WARMUP_NEIGHBOR = 5
+const ALL_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
+
+/** 手机 / 慢网（effectiveType 2g/3g 或 viewport ≤ 768px）：严格只阻塞加载 BOOT_LEVEL 单档，邻居档都延后到需要时才拿。 */
+function isConstrainedDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  const viewport = Math.max(window.innerWidth ?? 480, window.innerHeight ?? 480) <= 768
+  const conn = (navigator as any).connection as any
+  const slowNet = ['slow-2g', '2g', '3g'].includes(String(conn?.effectiveType ?? ''))
+  const saveData = Boolean(conn?.saveData)
+  return viewport || slowNet || saveData
+}
 
 export function useQuizEngine(mode: 'fast' | 'precise') {
   const total = MODE_LIMIT[mode]
@@ -74,7 +90,9 @@ export function useQuizEngine(mode: 'fast' | 'precise') {
   // reveal → next 的定时器句柄，用于在卸载/重置时清掉，避免 setState 泄漏
   const revealTimerRef = useRef<number | null>(null)
 
-  // 首次启动：并发加载 MIN_BOOT_LEVELS → 首题立刻出 → idle 补 L3/L6..L8 → 极端档懒加载
+  // 首次启动：阻塞路径只加载 BOOT_LEVEL(L4≈2MB)，首题立刻出；
+  // 非受限设备（桌面/强网）再在浏览器空闲 requestIdleCallback 中预热 L5 邻档；
+  // 其它 1/2/3/6/7/8/9/10 档全部延迟：升/降档算法算出 target 且未加载时，由 pickQuestion → ensureLevel 懒加载兜底
   useEffect(() => {
     let alive = true
     setLoading(true)
@@ -89,40 +107,30 @@ export function useQuizEngine(mode: 'fast' | 'precise') {
     if (revealTimerRef.current != null) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null }
 
     void (async () => {
-      const minPromises = Promise.all(MIN_BOOT_LEVELS.map(lv => loadLevel(lv).catch(() => null)))
-      const mins = await minPromises
+      const boot = await loadLevel(BOOT_LEVEL).catch(() => null)
       if (!alive) return
       const map: Record<number, LevelPool> = {}
-      for (const L of mins) if (L) map[L.level] = L
+      if (boot) map[boot.level] = boot
       levelsRef.current = map
       setLevels(map)
       setLoading(false)
 
-      const idleLoad = () => {
-        if (!alive) return
-        void (async () => {
-          const extras = await Promise.all(IDLE_BOOT_LEVELS.map(lv => (peekCachedLevel(lv) ? Promise.resolve<LevelPool | null>(null) : loadLevel(lv).catch(() => null))))
-          if (!alive) return
-          const now = { ...levelsRef.current }
-          let mutated = false
-          for (const L of extras) {
-            if (L && !now[L.level]) { now[L.level] = L; mutated = true }
-          }
-          if (mutated) { levelsRef.current = now; setLevels(now) }
-          for (const lv of EXTREMES) {
-            if (!peekCachedLevel(lv)) loadLevel(lv).then(() => {
-              const L = peekCachedLevel(lv)
-              if (L && alive) {
-                const cur = { ...levelsRef.current }
-                if (!cur[L.level]) { cur[L.level] = L; levelsRef.current = cur; setLevels(cur) }
-              }
-            }).catch(() => { /* NOOP */ })
-          }
-        })()
+      // 非受限设备：空闲时后台预热 L5（答对 1–2 题就升档的常见路径）
+      if (!isConstrainedDevice() && alive) {
+        const warmup = () => {
+          if (!alive || peekCachedLevel(WARMUP_NEIGHBOR)) return
+          loadLevel(WARMUP_NEIGHBOR)
+            .then((L: LevelPool) => {
+              if (!alive) return
+              const cur = { ...levelsRef.current }
+              if (!cur[L.level]) { cur[L.level] = L; levelsRef.current = cur; setLevels(cur) }
+            })
+            .catch(() => { /* NOOP */ })
+        }
+        const ric = (globalThis as any).requestIdleCallback
+        if (typeof ric === 'function') ric(warmup, { timeout: 1500 })
+        else setTimeout(warmup, 700)
       }
-      const ric: any = (globalThis as any).requestIdleCallback
-      if (typeof ric === 'function') ric(idleLoad, { timeout: 1200 })
-      else setTimeout(idleLoad, 0)
     })()
     return () => {
       alive = false
@@ -163,8 +171,11 @@ export function useQuizEngine(mode: 'fast' | 'precise') {
     if (!Object.keys(lvs).length) return { sampler: null, q: null }
     let sampler = pickNext(state, lvs)
     if (!sampler) {
-      for (const extra of EXTREMES) {
-        lvs = await ensureLevel(extra)
+      // pickNext 的升/降档目标如果不在内存（因为新策略只预加载 BOOT_LEVEL），
+      // 就按 ALL_LEVELS 顺序依次尝试懒加载（每次加载 1 档，不并发），直到能选出题。
+      // 这确保了 L1/L2/L3/L6..L10 从不被预先并发拉，只在用户答题曲线真的跳到时才 fetch。
+      for (const lv of ALL_LEVELS) {
+        lvs = await ensureLevel(lv)
         sampler = pickNext(state, lvs)
         if (sampler) break
       }

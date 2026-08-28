@@ -27,7 +27,7 @@ describe('Result page (TR-4 / TR-4.2 ~ TR-4.8)', () => {
     expect(screen.getByTestId('module-breakdown')).toBeInTheDocument()
     expect(screen.getByTestId('module-actions')).toBeInTheDocument()
     expect(screen.getByTestId('wechat-qr-placeholder')).toBeInTheDocument()
-    expect(screen.getByTestId('wechat-id').textContent).toBe('VocabTest-Official')
+    expect(screen.getByTestId('wechat-id').textContent).toBe('Alina0100302')
   })
 
   it('demo：totalVocab = 6200 → band.label 6,000 ~ 8,000，row=5 高亮；对标行文案含「专四 / 雅思 7 分线」', async () => {
