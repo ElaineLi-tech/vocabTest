@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=18 <23"
+  },
   "scripts": {
     "predev": "node scripts/ensure-data.js",
     "prebuild": "node scripts/ensure-data.js",

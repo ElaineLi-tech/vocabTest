@@ -112,3 +112,112 @@ if (typeof window !== 'undefined') {
     }
   }
 }
+
+/**
+ * Vitest 环境：同步 mock fetch('/data/levels/*.json') → 异步读本地 src/data/levels/*.json
+ * 与浏览器/Vercel 部署环境的 fetch 语义完全一致：返回 { ok, json() }。
+ * 这样 levels.ts 中只有单一加载分支，构建阶段不会枚举/打包 26MB JSON，避免 Vite/Node 线程池 OOM。
+ *
+ * 注意：
+ * - 必须在 setup.ts 退出前同步替换 globalThis.fetch（不能放在异步 IIFE 里），
+ *   否则 loadLevel 测试会先调用原生 fetch 去请求 /data/levels/L4.json，404 失败。
+ * - 读磁盘是异步的（fs/promises 动态 import + readFile），所以 mock 返回的 Promise
+ *   会在磁盘读完成之后 resolve / reject —— 这不影响 loadLevel 接口契约，
+ *   线上环境的真实 fetch 也是同样的 Promise<Response> 语义。
+ * - 由于是 ESM 项目（package.json type=module），不能使用 require()，
+ *   统一用动态 import('node:fs/promises') + import.meta.url 计算路径。
+ */
+{
+  const isVitest = typeof process !== 'undefined' && (process as any).env?.VITEST === 'true'
+  if (isVitest && typeof globalThis.fetch !== 'undefined' && typeof (import.meta as any)?.url === 'string') {
+    const origFetch = globalThis.fetch
+    // 通过当前 setup.ts 的 import.meta.url 计算项目根目录（<root>/src/test/setup.ts → <root>）
+    const setupFileUrl: string = (import.meta as any).url
+    let LEVELS_DIR_ABS: string | null = null
+    let readText: ((absPath: string) => Promise<string>) | null = null
+    const initPromise: Promise<void> = Promise.all([
+      import('node:path'),
+      import('node:fs/promises'),
+      import('node:url'),
+    ]).then(([pathMod, fsMod, urlMod]) => {
+      const { resolve, dirname, basename } = pathMod
+      const { fileURLToPath } = urlMod
+      const setupFile = fileURLToPath(setupFileUrl)
+      const PROJECT_ROOT = resolve(dirname(setupFile), '..', '..')
+      LEVELS_DIR_ABS = resolve(PROJECT_ROOT, 'src', 'data', 'levels')
+      readText = (p: string) => fsMod.readFile(p, 'utf8')
+      // 把 basename 缓存到模块作用域，避免每个请求再 dynamic import
+      ;(mockFetch as any).__basename = basename
+    })
+
+    const cache = new Map<string, string>()
+
+    function isLevelsRequest(input: any): string | null {
+      let u: string | null = null
+      if (typeof input === 'string') u = input
+      else if (input && typeof input.url === 'string') u = input.url
+      else if (input && typeof input.toString === 'function') {
+        try { u = String(input) } catch { u = null }
+      }
+      if (!u) return null
+      const m = u.match(/\/data\/levels\/(L\d+\.json|index\.json)(?:[?#].*)?$/)
+      if (!m) return null
+      const raw = m[0].slice(0, m[0].length - (m[3]?.length || 0))
+      const slash = raw.lastIndexOf('/')
+      return slash >= 0 ? raw.slice(slash + 1).split('?')[0].split('#')[0] : null
+    }
+
+    function makeJSONResponse(file: string, body: string) {
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        url: `/data/levels/${file}`,
+        type: 'basic',
+        redirected: false,
+        headers: new (globalThis as any).Headers ? new (globalThis as any).Headers({ 'content-type': 'application/json; charset=utf-8' }) : { get: (k: string) => k.toLowerCase() === 'content-type' ? 'application/json; charset=utf-8' : null },
+        json: () => Promise.resolve(JSON.parse(body)),
+        text: () => Promise.resolve(body),
+        clone() { return makeJSONResponse(file, body) },
+        get bodyUsed() { return false },
+        arrayBuffer: () => Promise.resolve(new TextEncoder().encode(body).buffer as any),
+        blob: () => Promise.resolve(new (globalThis as any).Blob([body], { type: 'application/json; charset=utf-8' })),
+      }
+    }
+    function makeErrorResponse(file: string, status: number, msg: string) {
+      return {
+        ok: false,
+        status,
+        statusText: msg || 'Error',
+        url: `/data/levels/${file}`,
+        json: () => Promise.reject(new Error(msg || String(status))),
+        text: () => Promise.resolve(msg || String(status)),
+        clone() { return makeErrorResponse(file, status, msg) },
+        get bodyUsed() { return false },
+      }
+    }
+
+    function mockFetch(input: any, init?: any): Promise<any> {
+      const file = isLevelsRequest(input)
+      if (file) {
+        const hit = cache.get(file)
+        if (hit != null) return Promise.resolve(makeJSONResponse(file, hit))
+        return initPromise
+          .then(() => {
+            if (!LEVELS_DIR_ABS || !readText) throw new Error('Vitest levels mock init failed')
+            const basename = (mockFetch as any).__basename || ((s: string) => s.slice(s.lastIndexOf('/') + 1))
+            const abs = import('node:path').then(m => m.join(LEVELS_DIR_ABS!, basename(file)))
+            return abs.then(a => readText!(a))
+          })
+          .then(body => {
+            cache.set(file, body)
+            return makeJSONResponse(file, body)
+          })
+          .catch(err => Promise.resolve(makeErrorResponse(file, 404, String(err?.message || err || 'Not Found'))))
+      }
+      return origFetch.call(globalThis, input, init)
+    }
+
+    ;(globalThis as any).fetch = mockFetch
+  }
+}

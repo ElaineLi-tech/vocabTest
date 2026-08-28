@@ -28,8 +28,6 @@ export interface LevelData {
  *  - 预 flatten 首词性 / 首释义 / word.toLowerCase()，避免每题循环时重复 toLowerCase / t[0]?.p / t[0]?.v 的空值检查
  *  - samePos: Record<pos, Int32Array> — 每个词性（含空串 fallback ''）对应 Int32 下标数组，取干扰项时直接切同词性池
  *  - allIdx: Int32Array — 全量 0..N-1 下标
- *  - wordLowerIdx: Record<lowerWord, idx> — 快速定位正确词，避免 exclude 每档 O(N) 扫描
- *  - 后续在 sampler 里，per-question overhead 从 O(N) 降到 O(1) ~ O(取干扰项尝试次数)
  * 所有字段均只读，不会被 sampler 改动（pool 的可用性通过 SamplerState 的 seen / per-level exclude Set 维护）
  */
 export interface LevelPool extends LevelData {
@@ -93,15 +91,29 @@ const _SYNC_CACHE = new Map<number, LevelPool>()
 
 /**
  * 加载并预构建 LevelPool；结果缓存，重复调用零开销。
- * 相比原版 loadLevel：返回 LevelPool（LevelData 的超集），所有原字段兼容。
+ *
+ * 运行环境与加载方式：
+ *  - 浏览器（npm run dev / Vercel 部署）：
+ *      fetch(`/data/levels/${m.file}`)
+ *    词库 JSON 存放在 public/data/levels/，Vite build 会原样拷贝到 dist/data/levels/，
+ *    CDN 直接分档分发，Quiz 首屏只加载 L4/L5，不参与 JS 打包，零构建开销。
+ *  - Vitest 单元测试（jsdom）：
+ *      src/test/setup.ts 会把 fetch('/data/levels/*.json') mock 成读本地 src/data/levels/*.json，
+ *    行为语义与网络 fetch 完全一致，无需分支。
  */
 export function loadLevel(level: number): Promise<LevelPool> {
   const cached = LEVEL_CACHE.get(level)
   if (cached) return cached
   const m = getLevelMeta(level)
   if (!m) return Promise.reject(new Error(`Unknown level ${level}`))
-  const p = import(`../data/levels/${m.file}` /* @vite-ignore */)
-    .then(mod => mod.default as LevelData)
+  if (typeof fetch !== 'function') {
+    return Promise.reject(new Error(`fetch is not available (level=${level})`))
+  }
+  const p = fetch(`/data/levels/${m.file}`)
+    .then(r => {
+      if (!r.ok) throw new Error(`Failed to load /data/levels/${m.file}: HTTP ${r.status}`)
+      return r.json() as Promise<LevelData>
+    })
     .then(d => {
       const pool = buildPool(d)
       _SYNC_CACHE.set(level, pool)
