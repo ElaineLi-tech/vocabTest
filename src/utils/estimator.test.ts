@@ -32,12 +32,13 @@ describe('estimator — Plan C (Wilson + guess debias + TYT calibrated anchor sp
   })
 
   // ===== 纯猜测（R=25%）=====
-  it('R=25%（纯四选一随机）→ debias=0 → anchor=0，档位贴到 row=0', () => {
-    const stats = simulateAcrossLevels(40, 10)  // exactly 25%
+  // 用户体验规则：totalCorrect>0 且 raw≤25% 给安慰奖 500（避免用户做了 40 题仍然 0 绝望）
+  it('R=25%（纯四选一随机 exactly 10/40）→ debias=0 但答对≥1题 → 安慰奖底线 500，档位 row=0 (500~1000)', () => {
+    const stats = simulateAcrossLevels(40, 10)  // exactly 25%, correct=10 (>0)
     const { total, smoothedOverall, band } = estimate(stats)
-    expect(smoothedOverall).toBeCloseTo(0, 3)
-    expect(total).toBe(0)
-    expect(band.band.row).toBe(0)  // <500 fallback
+    expect(smoothedOverall).toBeCloseTo(0, 3)  // 去偏后仍然是 0（数学上纯猜测）
+    expect(total).toBe(500)                    // 但 UX 底线：答对≥1题给 500
+    expect(band.band.row).toBe(0)              // row=0 = 500~1000 档，命中
   })
   it('R≈30%（比纯猜测略好，只能答对最简单词）→ vocab 在 0–1000 区间', () => {
     const stats = simulateAcrossLevels(40, 12)  // 30%
@@ -183,3 +184,43 @@ function substringMatch(band: { official: string; percentile: string; min: numbe
   const fallback = vocab < 500 && band.min === 500
   return (inRange || fallback) && !!band.official && !!band.percentile
 }
+
+// ============================================================================
+// 用户体验底线规则（新）：
+//   ① 一题都没答对 → 0
+//   ② 答对了 ≥1 题 但 总正确率 ≤ 25%（含 25%）→ 安慰奖 500
+//   ③ 正确率 > 25% → 保证 > 500（即最小 501）
+// ============================================================================
+describe('estimate() 用户体验底线规则（floor：≤25% 给 500 安慰奖，>25% 必超 500）', () => {
+  it('① 一题都没答对 (0/40) → 词汇量严格 = 0', () => {
+    const r = estimate(simulateAcrossLevels(40, 0))
+    expect(r.total).toBe(0)
+  })
+
+  it('② 刚好对 10/40 (raw=25%) → 安慰奖底线 500', () => {
+    const r = estimate(simulateAcrossLevels(40, 10))
+    expect(r.total).toBe(500)
+  })
+
+  it('② 对 9/40 (raw=22.5% < 25%) → 安慰奖 500', () => {
+    const r = estimate(simulateAcrossLevels(40, 9))
+    expect(r.total).toBe(500)
+  })
+
+  it('② 对 1/40 (raw=2.5% 只答对一题) → 安慰奖 500（不能是 0，避免用户绝望）', () => {
+    const r = estimate(simulateAcrossLevels(40, 1))
+    expect(r.total).toBe(500)
+  })
+
+  it('③ 对 11/40 (raw=27.5% > 25%) → 词汇量必须 > 500（原算法 debiased 低会被提升到 ≥501）', () => {
+    const r = estimate(simulateAcrossLevels(40, 11))
+    expect(r.total).toBeGreaterThan(500)
+    expect(r.total).toBeGreaterThanOrEqual(501)
+  })
+
+  it('③ 对 32/80 (raw=40% > 25%, 精准模式) → 原算法产出应自然高于 500 且保留锚点映射', () => {
+    const r = estimate(simulateAcrossLevels(80, 32), { precise: true })
+    // debiased = (0.40 - 0.25)/0.75 = 0.20 → ANCHORS[2]={r:0.20, vocab:1500} → 远 > 501
+    expect(r.total).toBeGreaterThan(1000)
+  })
+})

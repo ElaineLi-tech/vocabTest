@@ -180,7 +180,21 @@ export function estimate(stats: PerLevelStat[], opts: { precise?: boolean } = {}
   const hiRate = totalSampled === 0 ? 1 : wilsonUpper(totalCorrect, totalSampled)
   const smoothedOverall = debiasGuess(rawOverall)
 
-  const total = anchorLookup(smoothedOverall)
+  // ------------------------------------------------------------
+  // 用户体验底线规则（在去偏 + 锚点估算基础上做最终 floor / ceiling）：
+  //   ① totalCorrect === 0（一题没对）→ total = 0
+  //   ② 0 < 答对率 ≤ 25%（含 25%，但至少答对过 1 题）→ 安慰奖底线 500
+  //   ③ 答对率 > 25% → 原估算结果，但保证 > 500（即最小 501）
+  // ------------------------------------------------------------
+  const baseTotal = anchorLookup(smoothedOverall)
+  let total: number
+  if (totalCorrect === 0) {
+    total = 0
+  } else if (rawOverall <= 0.25) {
+    total = 500
+  } else {
+    total = Math.max(501, baseTotal)
+  }
 
   // 95% CI：把 Wilson 上下界都去偏 → 分别映射词汇 → 取半宽相对 total 的比例
   const loVocab = totalSampled === 0 ? 0 : anchorLookup(debiasGuess(loRate))
