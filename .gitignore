@@ -60,3 +60,6 @@ scripts/_*.mjs
 .vercel
 .env*
 VocabTest-授权码交付-仅你可见-勿公开.txt
+
+# TRAE 临时决策/草稿目录，不能进仓库
+draft_*_folder/

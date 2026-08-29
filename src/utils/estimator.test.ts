@@ -151,6 +151,7 @@ describe('estimator — Plan C (Wilson + guess debias + TYT calibrated anchor sp
 /**
  * 在 10 档中模拟一份近似 (totalSampled, totalCorrect) 的统计分布（只把题目放在 L3..L8，
  * 符合自适应算法常见覆盖范围），这样 estimate() 中的 Σm / Σk 等于 m/k 并能反映真实链路。
+ * 注意：多档整数分配可能导致 totalCorrect 有 ±1~2 的舍人误差，适合区间断言。
  */
 function simulateAcrossLevels(totalSampled: number, totalCorrect: number): PerLevelStat[] {
   const levels = [
@@ -176,6 +177,17 @@ function simulateAcrossLevels(totalSampled: number, totalCorrect: number): PerLe
     remainingM -= m
   })
   return result
+}
+
+/**
+ * 构造单一档 (sampled, mastered) 的精确样本，保证 rawOverall = mastered / sampled 丝毫不差。
+ * 用于需要对 raw 做精确等号断言的比例边界测试（40 题 / 80 题版本自动按比例对齐）。
+ */
+function singleLevelStats(sampled: number, mastered: number): PerLevelStat[] {
+  return [{
+    level: 4, name: 'CET-4 四级', mastered, sampled,
+    levelTotal: 4544,
+  }]
 }
 
 function substringMatch(band: { official: string; percentile: string; min: number; max: number }, vocab: number): boolean {
@@ -212,15 +224,36 @@ describe('estimate() 用户体验底线规则（floor：≤25% 给 500 安慰奖
     expect(r.total).toBe(500)
   })
 
-  it('③ 对 11/40 (raw=27.5% > 25%) → 词汇量必须 > 500（原算法 debiased 低会被提升到 ≥501）', () => {
-    const r = estimate(simulateAcrossLevels(40, 11))
+  it('③ 对 11/40 (raw=27.5% > 25%) → 线性插值 500+10000×0.025 = 525，不再是突兀的 501', () => {
+    const r = estimate(singleLevelStats(40, 11))
     expect(r.total).toBeGreaterThan(500)
-    expect(r.total).toBeGreaterThanOrEqual(501)
+    expect(r.total).toBe(525)
   })
 
-  it('③ 对 32/80 (raw=40% > 25%, 精准模式) → 原算法产出应自然高于 500 且保留锚点映射', () => {
-    const r = estimate(simulateAcrossLevels(80, 32), { precise: true })
-    // debiased = (0.40 - 0.25)/0.75 = 0.20 → ANCHORS[2]={r:0.20, vocab:1500} → 远 > 501
-    expect(r.total).toBeGreaterThan(1000)
+  it('③ 对 12/40 (raw=30% 用户指定校准点) → 词汇量严格 = 550', () => {
+    const r = estimate(singleLevelStats(40, 12))
+    expect(r.total).toBe(550)
+  })
+
+  it('③ 对 24/80 (raw=30% 80题版同比例) → 词汇量严格 = 550（与 12/40 对齐）', () => {
+    const r = estimate(singleLevelStats(80, 24), { precise: true })
+    expect(r.total).toBe(550)
+  })
+
+  it('③ 对 13/40 (raw=32.5% 用户指定校准点) → 词汇量严格 = 600', () => {
+    const r = estimate(singleLevelStats(40, 13))
+    expect(r.total).toBe(600)
+  })
+
+  it('③ 对 26/80 (raw=32.5% 80题版同比例) → 词汇量严格 = 600（与 13/40 对齐）', () => {
+    const r = estimate(singleLevelStats(80, 26), { precise: true })
+    expect(r.total).toBe(600)
+  })
+
+  it('③ 对 32/80 (raw=40% > 32.5%, 精准模式) → 超过校准区间，自然走锚点(1500)，高于 600', () => {
+    const r = estimate(singleLevelStats(80, 32), { precise: true })
+    // debiased = (0.40 - 0.25)/0.75 = 0.20 → ANCHORS[2]={r:0.20, vocab:1500}
+    expect(r.total).toBeGreaterThan(600)
+    expect(r.total).toBe(1500)
   })
 })

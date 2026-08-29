@@ -181,19 +181,31 @@ export function estimate(stats: PerLevelStat[], opts: { precise?: boolean } = {}
   const smoothedOverall = debiasGuess(rawOverall)
 
   // ------------------------------------------------------------
-  // 用户体验底线规则（在去偏 + 锚点估算基础上做最终 floor / ceiling）：
+  // 用户体验底线规则（在去偏 + 锚点估算基础上做最终 floor）：
   //   ① totalCorrect === 0（一题没对）→ total = 0
   //   ② 0 < 答对率 ≤ 25%（含 25%，但至少答对过 1 题）→ 安慰奖底线 500
-  //   ③ 答对率 > 25% → 原估算结果，但保证 > 500（即最小 501）
+  //   ③ 答对率 > 25%：低分段按用户指定校准点**线性插值**避免 501 直跳太突兀
+  //        25% → 500  （与规则②尾端连续衔接）
+  //        30% → 550  （用户指定：12/40 或 24/80）
+  //        32.5% → 600（用户指定：13/40 或 26/80）
+  //        >32.5% → floor=600（再与 11 档锚点自然衔接，baseVocab 超 600 后退出保护）
+  //      最终 total = max(lowEndFloor(rawOverall), baseTotal)
+  //   注：raw=correct/total 是比例量纲，40/80 题自动同比例校准，无需特殊分支
   // ------------------------------------------------------------
   const baseTotal = anchorLookup(smoothedOverall)
+  const lowEndFloor = (r: number): number => {
+    if (r <= 0.30) return 500 + 1000 * (r - 0.25)                 // 25%→500, 30%→550 (每0.01 raw +10 词)
+    if (r <= 0.325) return 550 + 2000 * (r - 0.30)                // 30%→550, 32.5%→600 (每0.005 raw +10 词)
+    return 600
+  }
   let total: number
   if (totalCorrect === 0) {
     total = 0
   } else if (rawOverall <= 0.25) {
     total = 500
   } else {
-    total = Math.max(501, baseTotal)
+    const floor = lowEndFloor(rawOverall)
+    total = Math.max(floor, baseTotal)
   }
 
   // 95% CI：把 Wilson 上下界都去偏 → 分别映射词汇 → 取半宽相对 total 的比例
