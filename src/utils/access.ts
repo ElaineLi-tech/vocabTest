@@ -120,6 +120,8 @@ export const ALLOWED_CODE_HASHES: string[] = [
   "a6a4305c53c3af14b0f4a4231372a44fc4e98df399fcb848313bb4b23fad68ef",
   "6fad6244ca559d06bb0741bcc0f4e67f3b5876582b39aa4926f6e79eda593698",
   "92cfa3c1d6342899a22e4725688d3fa3ce4294b0286907ee0b78828b99005b7d",
+  "f0a18e84d33ee9bf38bad8083136810525dcf2e7476fa00af9c718185adad4e4",
+  "27304880bba153effaab2636f5860dc63e5a38a08ec5f7a0f88420da6f9b9527",
 ];
 
 /** 超级管理员万能码的 SHA-256 哈希（永久有效，不受 VALID_DAYS 限制）。请把明文单独保存（交付清单），不要把明文写进代码。 */
