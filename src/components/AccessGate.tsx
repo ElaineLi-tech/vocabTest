@@ -71,8 +71,8 @@ export default function AccessGate(props: { children: React.ReactNode }) {
   }
 
   return (
-    <PageShell title="授权验证" subtitle="VocabTest 为付费服务，请输入购买获得的 16 位授权码解锁全站功能">
-      <div className="py-8 sm:py-10">
+    <PageShell hideBanner>
+      <div className="py-8 sm:py-10 min-h-screen">
         <div className="mx-auto max-w-6xl grid gap-6 lg:grid-cols-2 items-stretch">
 
           {/* 左侧：产品介绍 + 购买微信导流，不让陌生访客看到空白 Gate 就直接走

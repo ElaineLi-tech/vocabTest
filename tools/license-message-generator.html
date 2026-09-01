@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VocabTest · 交付文案生成器（序列号一键替换）</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f7f7fb; color: #1f2937;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+  .card {
+    background: #fff; border: 1px solid #e5e7ef; border-radius: 12px;
+    padding: 16px 18px; box-shadow: 0 1px 2px rgba(0,0,0,.03); margin-bottom: 16px;
+  }
+  .row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .row:last-child { margin-bottom: 0; }
+  label { font-size: 13px; font-weight: 600; color: #374151; }
+  input[type=text] {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db;
+    font-size: 15px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .3px; outline: none; transition: all .15s;
+  }
+  input[type=text]:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+  input.error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.12); }
+  .hint { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .hint.err { color: #ef4444; }
+  .hint.ok  { color: #10b981; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    padding: 10px 18px; border: 0; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-primary { background: #7c3aed; color: #fff; }
+  .btn-primary:hover { background: #6d28d9; }
+  .btn-primary:disabled { background: #c4b5fd; cursor: not-allowed; }
+  .btn-ghost { background: #f3f4f6; color: #374151; }
+  .btn-ghost:hover { background: #e5e7eb; }
+  pre.out {
+    margin: 0; padding: 16px; background: #0f172a; color: #e2e8f0; border-radius: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; word-break: break-all;
+    border: 1px solid #1e293b; overflow-x: auto;
+  }
+  pre.out.light { background: #fffdf7; color: #1f2937; border-color: #e5e7ef; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    background: #ede9fe; color: #6d28d9; margin-right: 6px;
+  }
+  .toast {
+    position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%) translateY(30px);
+    background: #111827; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 13px;
+    opacity: 0; pointer-events: none; transition: all .2s;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18); z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toggle-theme { font-size: 12px; color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>VocabTest · 交付文案生成器 <span class="tag">序列号自动替换</span><span class="tag">方框精确对齐</span></h1>
+  <p class="sub">粘贴客户专属授权序列号 → 右侧实时生成最终交付文案 → <b>一键复制</b> 到微信/短信/邮件发给客户。<br>所有字段（称呼、链接、有效期、微信号）都可在下方改配置一次后长期使用。</p>
+
+  <div class="card">
+    <div class="row">
+      <label>客户称呼（可选）</label>
+      <div>
+        <input id="f-name" type="text" placeholder="如：张同学 / 宝妈Linda / Dear Amy（留空则跳过称呼行）" />
+      </div>
+    </div>
+    <div class="row">
+      <label>授权序列号 ★</label>
+      <div>
+        <input id="f-code" type="text" placeholder="VT-XXXX-XXXX-XXXX-XXXX（粘贴时自动去掉多余空格/小写）" />
+        <div id="code-hint" class="hint">格式示例：VT-HGKZ-MCEU-EQ95-P3J3 · 万能管理员码或普通客户码皆可</div>
+      </div>
+    </div>
+    <div class="row">
+      <label>测试官网</label>
+      <div>
+        <input id="f-url" type="text" value="https://vocabtest.shenglishlearner.cn/" />
+        <div class="hint">默认已填你独立域名，换域名改这里一次就行</div>
+      </div>
+    </div>
+    <div class="row">
+      <label>微信号（领学习包）</label>
+      <div>
+        <input id="f-wechat" type="text" value="Alina0100302" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <b style="font-size:14px;">📋 最终交付文案（实时预览 / 精确方框对齐）</b>
+      <button class="btn-ghost toggle-theme" id="toggle-theme">☀️ 浅色预览</button>
+    </div>
+    <pre id="output" class="out"></pre>
+  </div>
+
+  <div class="btns" style="justify-content:flex-end;">
+    <button class="btn-ghost" id="btn-reset">清空重填</button>
+    <button class="btn-primary" id="btn-copy" disabled>📋 一键复制全部文案</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">已复制！去微信粘贴给客户吧 🎉</div>
+
+<script>
+/* =============================
+ * 核心：精确对齐 ASCII 方框
+ *   —— 按显示宽度（中文=2，英文/数字=1）计算最长行，动态生成 ─ 数
+ * ============================= */
+const CJK = /[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/;
+function displayWidth(str) {
+  let w = 0;
+  for (const ch of (str ?? '')) w += CJK.test(ch) ? 2 : 1;
+  return w;
+}
+function padRightTo(str, width) {
+  const need = width - displayWidth(str);
+  return str + (need > 0 ? ' '.repeat(need) : '');
+}
+/* 构造 ASCII 方框包裹的「交付清单」三行（可任意加字段） */
+function buildBox(rowsKV /* [[label, value], ...] */) {
+  // 1. 先把每行拼成 label + value（冒号 + 2 空格分隔），算最长显示宽度
+  const lines = rowsKV.map(([k, v]) => `${k}：${v}`);
+  const innerWidth = Math.max(32, ...lines.map(displayWidth));  // 保底 32，短了不塌
+  // 2. 上下框
+  const top = '┌' + '─'.repeat(innerWidth + 2) + '┐';
+  const bot = '└' + '─'.repeat(innerWidth + 2) + '┘';
+  // 3. 中间每行两侧竖线
+  const mid = lines.map(line => `│ ${padRightTo(line, innerWidth)} │`).join('\n');
+  return `${top}\n${mid}\n${bot}`;
+}
+
+/* ========== 序列号规范化：去掉空格、小写转大写、自动每 4 位加分隔符 ========== */
+const CODE_RE = /^VT-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+function normalizeCode(raw) {
+  let s = (raw ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (s.startsWith('VTVT')) s = s.slice(2);        // 双 VT 前缀容错
+  if (!s.startsWith('VT')) s = 'VT' + s;           // 漏写前缀容错
+  // 按每 4 位插入横杠：VT + 4 + 4 + 4 + 4 = 22 字母 → 加 4 横杠后总长 26（标准）
+  if (s.length >= 2 + 4*4) s = s.slice(0, 2 + 4*4);
+  const parts = [s.slice(0,2), s.slice(2,6), s.slice(6,10), s.slice(10,14), s.slice(14,18)];
+  return parts.filter(Boolean).join('-');
+}
+
+/* ========== 拼接最终整套文案（完全按你给的模板：称呼可选 / 感谢 / 框 / 使用方法 3 步） ========== */
+function renderMessage(ctx) {
+  const name = (ctx.name || '').trim();
+  const header = name ? `您好，${name}：\n\n` : `您好：\n\n`;
+  const thanks =
+`首先感谢您购买 VocabTest 词汇量测试 VIP 永久使用权，以下是交付内容，请妥善保存：
+`;
+  const box = buildBox([
+    ['测试官网',   ` \`${ctx.url}\``],
+    ['授权序列号', ` ${ctx.code || '【　请先在上方输入授权序列号　】'}`],
+    ['有效期',     ` 永久（30天内设备更换可免费补发）`],
+  ]);
+  const usage =
+`
+【使用方法】
+1. 浏览器访问上述网址，首页弹窗输入整串序列号（含 VT 前缀和横杠）
+2. 点击"解锁使用"即可开始测试，支持标准 40 题 / 精准 80 题两种模式
+3. 测试完成后将结果页截图发送到微信 ${ctx.wechat}，
+   我们将在 12 小时内为您发送 299 元 VIP 学习包（剑桥教材+语境手册+21天计划）。`;
+  return `${header}${thanks}\n${box}\n${usage}\n`;
+}
+
+/* ========== DOM 绑定 ========== */
+const $ = id => document.getElementById(id);
+const ctx = { name: '', code: '', url: $('f-url').value, wechat: $('f-wechat').value };
+
+function update() {
+  ctx.name = $('f-name').value.trim();
+  ctx.url  = $('f-url').value.trim() || '—';
+  ctx.wechat = $('f-wechat').value.trim() || '（请填写）';
+  const rawCode = $('f-code').value;
+  const code = normalizeCode(rawCode);
+  const valid = CODE_RE.test(code);
+  const codeHint = $('code-hint');
+  const codeInput = $('f-code');
+  if (!rawCode) {
+    codeInput.classList.remove('error');
+    codeHint.className = 'hint';
+    codeHint.textContent = '格式示例：VT-HGKZ-MCEU-EQ95-P3J3 · 万能管理员码或普通客户码皆可';
+  } else if (!valid) {
+    codeInput.classList.add('error');
+    codeHint.className = 'hint err';
+    codeHint.textContent = `⚠️ 格式错误（应为 VT-XXXX-XXXX-XXXX-XXXX，当前输入 ${code.length} 字符）`;
+  } else {
+    codeInput.classList.remove('error');
+    codeHint.className = 'hint ok';
+    codeHint.textContent = `✅ 授权码格式正确 · 已规范化为：${code}`;
+  }
+  ctx.code = valid ? code : '';
+  $('output').textContent = renderMessage(ctx);
+  $('btn-copy').disabled = !valid;
+}
+
+/* 粘贴时自动格式化：去掉空格、规范化、不跳字符 */
+$('f-code').addEventListener('input', e => {
+  const caret = e.target.selectionStart;
+  const before = e.target.value;
+  const after = normalizeCode(before);
+  // 只在确实发生非打印字符变化时回写，避免用户正在输入光标乱跑
+  if (after !== before) {
+    e.target.value = after;
+    try { e.target.setSelectionRange(after.length, after.length); } catch(_) {}
+  }
+  update();
+});
+$('f-name').addEventListener('input', update);
+$('f-url').addEventListener('input', update);
+$('f-wechat').addEventListener('input', update);
+
+$('btn-copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('output').textContent);
+    const t = $('toast'); t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  } catch (e) {
+    // 老浏览器 fallback
+    const r = document.createRange(); r.selectNode($('output'));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    document.execCommand('copy'); sel.removeAllRanges();
+    const t = $('toast'); t.textContent = '已复制（兼容模式）✅'; t.classList.add('show');
+    setTimeout(() => { t.classList.remove('show'); t.textContent = '已复制！去微信粘贴给客户吧 🎉'; }, 1800);
+  }
+});
+
+$('btn-reset').addEventListener('click', () => {
+  $('f-name').value = ''; $('f-code').value = ''; $('code-hint').className = 'hint';
+  $('code-hint').textContent = '格式示例：VT-HGKZ-MCEU-EQ95-P3J3 · 万能管理员码或普通客户码皆可';
+  update(); $('f-code').focus();
+});
+
+let dark = true;
+$('toggle-theme').addEventListener('click', () => {
+  dark = !dark;
+  $('output').classList.toggle('light', dark ? false : true);
+  $('toggle-theme').textContent = dark ? '☀️ 浅色预览' : '🌙 深色预览';
+});
+
+update();
+$('f-code').focus();
+</script>
+</body>
+</html>

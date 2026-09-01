@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { applyAnswer, createSamplerState, pickNext, shuffleOptions, type SamplerLevelData, type SamplerQuestion, type SamplerState } from '@/utils/sampler'
+import { applyAnswer, computeTarget, createSamplerState, pickNext, shuffleOptions, type SamplerLevelData, type SamplerQuestion, type SamplerState } from '@/utils/sampler'
 import { getLevelMeta, listLevels, loadLevel, peekCachedLevel, type LevelPool } from '@/utils/levels'
 import { estimate, type PerLevelStat } from '@/utils/estimator'
 
@@ -169,6 +169,14 @@ export function useQuizEngine(mode: 'fast' | 'precise') {
   const pickQuestion = useCallback(async (state: SamplerState): Promise<{ sampler: SamplerQuestion | null; q: Question | null }> => {
     let lvs = levelsRef.current
     if (!Object.keys(lvs).length) return { sampler: null, q: null }
+
+    // 自适应关键：先算出 target 档，如果该档还没加载进内存，立刻 ensureLevel 懒加载。
+    // 之前的 bug：pickNext 只从「已加载」的档里选词，首屏只有 L4 → 题目永远来自 L4。
+    const target = computeTarget(state)
+    if (target && !lvs[target]) {
+      lvs = await ensureLevel(target)
+    }
+
     let sampler = pickNext(state, lvs)
     if (!sampler) {
       // pickNext 的升/降档目标如果不在内存（因为新策略只预加载 BOOT_LEVEL），

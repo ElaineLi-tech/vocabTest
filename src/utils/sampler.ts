@@ -162,11 +162,48 @@ function exploreOrder(levelsSortedAsc: number[], start: number): number[] {
   return out
 }
 
+/** 全档列表（1-10），用于 target 计算的上下界，不受「哪些档已加载到内存」影响 */
+const ALL_LEVELS_CONST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+/**
+ * 根据近期答题正确率计算下一个 target level。
+ *
+ * 关键：上下界用 ALL_LEVELS_CONST（全档 1-10），而非「已加载到内存的档」。
+ * 这样即使用户连续答对、target 升到 L6/L7 但这些档还没加载，
+ * computeTarget 也会返回正确的 L6/L7，让上层 pickQuestion 触发 ensureLevel 懒加载。
+ *
+ *  - 首题：L4（CET-4 起步）
+ *  - 最近 5 题正确率 ≥60% → 升 1 档（满 5 题升 2 档）
+ *  - ≤30% → 降 1 档（满 5 题降 2 档）
+ *  - 某档已采样 ≥10 题 → 强制升 1 档（避免在低档刷分）
+ */
+export function computeTarget(
+  state: SamplerState,
+  allLevels: number[] = ALL_LEVELS_CONST,
+): number {
+  if (state.currentLevel == null || state.answered === 0) {
+    return allLevels.includes(4) ? 4 : allLevels[Math.floor(allLevels.length / 2)]
+  }
+  const recent = state.lastResults.slice(-5)
+  const hitRate = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0.5
+  const cur = state.currentLevel
+  let target: number
+  if (hitRate >= 0.6) target = Math.min(allLevels[allLevels.length - 1], cur + (recent.length >= 5 ? 2 : 1))
+  else if (hitRate <= 0.3) target = Math.max(allLevels[0], cur - (recent.length >= 5 ? 2 : 1))
+  else target = cur
+  if ((state.perLevelSampled[target] ?? 0) >= 10) target = Math.min(allLevels[allLevels.length - 1], target + 1)
+  if (!allLevels.includes(target)) target = nearest(allLevels, target)
+  return target
+}
+
 /**
  * 抽样下一题（O(1) swap-and-pop 版本）：
  *  - 首次进入某档，自动调用 ensureLiveFor 构建 perLevelLive（一次性 O(N) 拷贝）
  *  - 选词：从 levelLive 中 rand 一个位置，和末尾 swap，pop 末尾（同时 seen.add 兜底、perLevelPosLive 不维护避免同步开销）
  *  - 干扰项：makeDistractors(pooled) 不再 O(N) 重扫词性
+ *
+ * 注意：调用方应先用 computeTarget 算出 target 并确保 target 档已加载（ensureLevel），
+ * 否则 pickNext 只能从「已加载」的档里选最近的，可能回退到 L4。
  */
 export function pickNext(
   state: SamplerState,
@@ -177,20 +214,8 @@ export function pickNext(
   const existing = Object.keys(levels).map(Number).sort((a, b) => a - b)
   if (existing.length === 0) return null
 
-  // 1) 决定 target level
-  let target: number
-  if (state.currentLevel == null || state.answered === 0) {
-    target = existing.includes(4) ? 4 : existing[Math.floor(existing.length / 2)]
-  } else {
-    const recent = state.lastResults.slice(-5)
-    const hitRate = recent.length ? recent.reduce((a, b) => a + b, 0) / recent.length : 0.5
-    const cur = state.currentLevel
-    if (hitRate >= 0.6) target = Math.min(existing[existing.length - 1], cur + (recent.length >= 5 ? 2 : 1))
-    else if (hitRate <= 0.3) target = Math.max(existing[0], cur - (recent.length >= 5 ? 2 : 1))
-    else target = cur
-    if ((state.perLevelSampled[target] ?? 0) >= 10) target = Math.min(existing[existing.length - 1], target + 1)
-    if (!existing.includes(target)) target = nearest(existing, target)
-  }
+  // 1) 决定 target level（用已加载档做回退，理想情况 target 档已由上层 ensureLevel 加载）
+  const target = computeTarget(state)
 
   // 2) 依次从 exploreOrder 的 level 中选词
   const order = exploreOrder(existing, target)

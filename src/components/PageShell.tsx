@@ -6,36 +6,45 @@ export default function PageShell({
   subtitle,
   children,
   action,
+  /**
+   * true → 隐藏顶部 banner（V VocabTest / 历史记录 / 主题切换）+ 外层通用标题区。
+   * 用在 <AccessGate> 授权拦截页：未授权的用户不应看到站内导航（看起来像"不需要授权就能用"），
+   * 也避免 Gate 卡片标题与外层 h1 重复。
+   */
+  hideBanner,
 }: {
   title?: string
   subtitle?: string
   children: React.ReactNode
   action?: React.ReactNode
+  hideBanner?: boolean
 }) {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-[rgb(var(--line))] bg-[rgb(var(--bg))]/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-white font-bold numeric shadow-card">V</span>
-            <span className="font-semibold tracking-tight text-[rgb(var(--fg))]">VocabTest</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/history"
-              className="inline-flex h-9 items-center rounded-lg border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-3 text-sm text-[rgb(var(--fg))] hover:bg-brand-50 dark:hover:bg-brand-900/40 sm:hidden"
-              aria-label="历史记录"
-            >📖</Link>
-            <Link
-              to="/history"
-              className="hidden sm:inline-flex h-9 items-center rounded-lg border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-3 text-sm text-[rgb(var(--fg))] hover:bg-brand-50 dark:hover:bg-brand-900/40"
-            >历史记录</Link>
-            {action}
-            <ThemeToggle />
+      {!hideBanner && (
+        <header className="sticky top-0 z-30 border-b border-[rgb(var(--line))] bg-[rgb(var(--bg))]/80 backdrop-blur">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+            <Link to="/" className="flex items-center gap-2">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-white font-bold numeric shadow-card">V</span>
+              <span className="font-semibold tracking-tight text-[rgb(var(--fg))]">VocabTest</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/history"
+                className="inline-flex h-9 items-center rounded-lg border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-3 text-sm text-[rgb(var(--fg))] hover:bg-brand-50 dark:hover:bg-brand-900/40 sm:hidden"
+                aria-label="历史记录"
+              >📖</Link>
+              <Link
+                to="/history"
+                className="hidden sm:inline-flex h-9 items-center rounded-lg border border-[rgb(var(--line))] bg-[rgb(var(--card))] px-3 text-sm text-[rgb(var(--fg))] hover:bg-brand-50 dark:hover:bg-brand-900/40"
+              >历史记录</Link>
+              {action}
+              <ThemeToggle />
+            </div>
           </div>
-        </div>
-      </header>
-      {(title || subtitle) && (
+        </header>
+      )}
+      {!hideBanner && (title || subtitle) && (
         <div className="mx-auto max-w-5xl px-4 pt-8">
           <h1 className="rule text-3xl font-bold tracking-tight sm:text-4xl">
             {title}
@@ -47,7 +56,7 @@ export default function PageShell({
           )}
         </div>
       )}
-      <main className="mx-auto max-w-5xl px-4 py-6 pb-24">
+      <main className={`mx-auto max-w-5xl px-4 pb-24 ${hideBanner ? '' : 'py-6'}`}>
         {children}
       </main>
     </div>
